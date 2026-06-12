@@ -14,16 +14,29 @@ npm run lint     # run ESLint
 
 ## Architecture
 
-Single-component React app (no router, no external state library). All logic lives in `src/App.jsx`:
+React + Vite app with no router and no external state library. The `transactions` array is the single source of truth, held in `useState` in `App.jsx` and passed down as props.
 
-- **State**: `transactions` array held in `useState` — no persistence (data resets on page reload). Each transaction has `{ id, description, amount, type, category, date }`. `amount` is stored as a string from the input and used directly in arithmetic — coercion happens at reduce time.
-- **Derived values**: `totalIncome`, `totalExpenses`, and `balance` are computed inline on every render by filtering and reducing `transactions`.
-- **Filtering**: `filterType` and `filterCategory` state drives `filteredTransactions`, which is what the table renders.
-- **Add form**: `handleSubmit` appends a new transaction object and resets form fields.
-- **Styling**: flat CSS in `src/App.css` and `src/index.css` — no CSS framework or CSS modules. Class names like `.income-amount` / `.expense-amount` / `.balance-amount` are shared between the summary cards and the transaction table.
+### Component tree
+
+```
+App
+├── Summary          — receives transactions, computes and displays totals
+├── TransactionForm  — owns its own form state, calls onAdd(transaction) on submit
+└── TransactionList  — owns its own filter state, renders filtered table from transactions prop
+```
+
+### Data flow
+
+- `App.jsx` holds the `transactions` array and a `handleAdd` callback that appends new entries.
+- `TransactionForm` is fully self-contained for form state; it calls `onAdd` with a complete transaction object (`{ id, description, amount, type, category, date }`). `amount` is stored as a number (`parseFloat`).
+- `TransactionList` manages its own `filterType` / `filterCategory` state internally — filter state does not live in `App`.
+- `Summary` derives `totalIncome`, `totalExpenses`, and `balance` from the `transactions` prop on every render.
+
+### Styling
+
+Flat CSS in `src/App.css` and `src/index.css` — no CSS framework or CSS modules. Class names `.income-amount`, `.expense-amount`, and `.balance-amount` are shared between the summary cards and the transaction table rows.
 
 ## Known issues
 
-- `amount` is stored as a string, so `reduce((sum, t) => sum + t.amount, 0)` does string concatenation for seed transactions where the value was entered as a string literal — newly added transactions inherit the same string type from the `<input type="number">`. Totals will be wrong until this is fixed by parsing amounts to numbers.
 - No delete or edit capability on transactions.
-- No data persistence (localStorage or backend).
+- No data persistence (localStorage or backend) — state resets on page reload.
