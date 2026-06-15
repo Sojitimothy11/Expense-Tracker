@@ -40,12 +40,13 @@ function TransactionList({ transactions, onDelete }) {
       {filtered.length === 0 ? (
         <p className="empty-state">No transactions match your filters.</p>
       ) : (
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Date</th>
+              <th className="col-date">Date</th>
               <th>Description</th>
-              <th>Category</th>
+              <th className="col-cat">Category</th>
               <th>Amount</th>
               <th>Actions</th>
             </tr>
@@ -53,9 +54,14 @@ function TransactionList({ transactions, onDelete }) {
           <tbody>
             {filtered.map(t => (
               <tr key={t.id}>
-                <td>{t.date}</td>
-                <td>{t.description}</td>
+                <td className="col-date">{t.date}</td>
                 <td>
+                  <span className="tx-desc">{t.description}</span>
+                  <span className={`category-badge cat-${t.category} col-cat-inline`}>
+                    {t.category.charAt(0).toUpperCase() + t.category.slice(1)}
+                  </span>
+                </td>
+                <td className="col-cat">
                   <span className={`category-badge cat-${t.category}`}>
                     {t.category.charAt(0).toUpperCase() + t.category.slice(1)}
                   </span>
@@ -80,6 +86,7 @@ function TransactionList({ transactions, onDelete }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
