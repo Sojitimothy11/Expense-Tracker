@@ -1,40 +1,86 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  collection, onSnapshot, addDoc, deleteDoc,
+  doc, query, orderBy
+} from 'firebase/firestore'
 import './App.css'
+import { db } from './firebase.js'
+import { useAuth } from './AuthContext.jsx'
+import Login from './Login.jsx'
 import Summary from './Summary.jsx'
 import TransactionForm from './TransactionForm.jsx'
 import TransactionList from './TransactionList.jsx'
 import SpendingChart from './SpendingChart.jsx'
 
 function App() {
-  const [transactions, setTransactions] = useState([
-    { id: 1, description: "Salary", amount: 5000, type: "income", category: "salary", date: "2025-01-01" },
-    { id: 2, description: "Rent", amount: 1200, type: "expense", category: "housing", date: "2025-01-02" },
-    { id: 3, description: "Groceries", amount: 150, type: "expense", category: "food", date: "2025-01-03" },
-    { id: 4, description: "Freelance Work", amount: 800, type: "expense", category: "salary", date: "2025-01-05" },
-    { id: 5, description: "Electric Bill", amount: 95, type: "expense", category: "utilities", date: "2025-01-06" },
-    { id: 6, description: "Dinner Out", amount: 65, type: "expense", category: "food", date: "2025-01-07" },
-    { id: 7, description: "Gas", amount: 45, type: "expense", category: "transport", date: "2025-01-08" },
-    { id: 8, description: "Netflix", amount: 15, type: "expense", category: "entertainment", date: "2025-01-10" },
-  ]);
+  const { user, authLoading, signOut } = useAuth();
+  const [transactions, setTransactions] = useState([]);
+  const [dataLoading, setDataLoading]   = useState(true);
 
-  const handleAdd = (transaction) => {
-    setTransactions([...transactions, transaction]);
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'users', user.uid, 'transactions'),
+      orderBy('date', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTransactions(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setDataLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAdd = (tx) => {
+    const { id: _id, ...data } = tx;
+    addDoc(collection(db, 'users', user.uid, 'transactions'), data);
   };
 
   const handleDelete = (id) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+    deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
   };
 
-  return (
-    <div className="app">
-      <h1>Finance Tracker</h1>
-      <p className="subtitle">Track your income and expenses</p>
+  if (authLoading) return <div className="app-loading"><div className="spinner" /></div>;
+  if (!user)       return <Login />;
 
-      <Summary transactions={transactions} />
-      <SpendingChart transactions={transactions} />
-      <TransactionForm onAdd={handleAdd} />
-      <TransactionList transactions={transactions} onDelete={handleDelete} />
-    </div>
+  const firstName = user.displayName?.split(' ')[0] ?? 'there';
+
+  return (
+    <>
+      <header className="hero">
+        <div className="hero-inner">
+          <div className="hero-top">
+            <div className="hero-text">
+              <h1>Finance Tracker</h1>
+              <p className="subtitle">Welcome back, {firstName}</p>
+            </div>
+            <div className="user-menu">
+              {user.photoURL && (
+                <img src={user.photoURL} alt={user.displayName} className="avatar" referrerPolicy="no-referrer" />
+              )}
+              <button className="signout-btn" onClick={signOut}>Sign out</button>
+            </div>
+          </div>
+          <Summary transactions={transactions} />
+        </div>
+      </header>
+
+      <main className="main-content">
+        {dataLoading ? (
+          <div className="data-loading"><div className="spinner" /></div>
+        ) : (
+          <>
+            <div className="two-col">
+              <SpendingChart transactions={transactions} />
+              <TransactionForm onAdd={handleAdd} />
+            </div>
+            <TransactionList transactions={transactions} onDelete={handleDelete} />
+          </>
+        )}
+      </main>
+    </>
   );
 }
 
