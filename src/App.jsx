@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense, lazy } from 'react'
 import {
   collection, onSnapshot, addDoc, deleteDoc,
   doc, query, orderBy
@@ -10,7 +10,8 @@ import Login from './Login.jsx'
 import Summary from './Summary.jsx'
 import TransactionForm from './TransactionForm.jsx'
 import TransactionList from './TransactionList.jsx'
-import SpendingChart from './SpendingChart.jsx'
+
+const SpendingChart = lazy(() => import('./SpendingChart.jsx'))
 
 function App() {
   const { user, authLoading, signOut } = useAuth();
@@ -73,7 +74,9 @@ function App() {
         ) : (
           <>
             <div className="two-col">
-              <SpendingChart transactions={transactions} />
+              <Suspense fallback={<div className="data-loading"><div className="spinner" /></div>}>
+                <SpendingChart transactions={transactions} />
+              </Suspense>
               <TransactionForm onAdd={handleAdd} />
             </div>
             <TransactionList transactions={transactions} onDelete={handleDelete} />
