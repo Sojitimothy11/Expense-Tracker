@@ -23,8 +23,9 @@ export default function Login() {
     try {
       await signIn();
     } catch (err) {
+      console.error('Sign-in error:', err.code, err.message);
       if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Sign-in failed. Please try again.');
+        setError(`Sign-in failed: ${err.code || err.message}`);
       }
     } finally {
       setLoading(false);
